@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LinkStart</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <div class="header">
+      <h1>LinkStart</h1>
+      <button id="settingsBtn" class="icon-btn" title="Settings">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M12 1v6m0 6v6m5.2-13.2l-4.2 4.2m0 6l4.2 4.2M23 12h-6m-6 0H1m18.8 5.2l-4.2-4.2m-6 0l-4.2 4.2"></path>
+        </svg>
+      </button>
+    </div>
+
+    <div id="groupsContainer" class="groups-container">
+      <!-- Groups will be dynamically loaded here -->
+    </div>
+
+    <div id="emptyState" class="empty-state" style="display: none;">
+      <p>No groups configured</p>
+      <button id="createFirstGroup" class="primary-btn">Create Your First Group</button>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

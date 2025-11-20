@@ -1,0 +1,23 @@
+{
+  "name": "linkstart",
+  "version": "1.0.0",
+  "description": "LinkStart - Launch groups of websites with one click. Supports auto-login scripts and Firefox startup automation.",
+  "main": "index.js",
+  "scripts": {
+    "dev": "web-ext run --source-dir=./firefox --start-url about:debugging#/runtime/this-firefox",
+    "build": "web-ext build --source-dir=./firefox --artifacts-dir=./dist",
+    "lint": "web-ext lint --source-dir=./firefox",
+    "sign": "web-ext sign --source-dir=./firefox"
+  },
+  "keywords": [
+    "firefox",
+    "extension",
+    "automation",
+    "productivity"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "web-ext": "^8.3.0"
+  }
+}
