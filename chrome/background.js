@@ -358,10 +358,11 @@ async function launchSite(site) {
 
 /**
  * Listen for tab updates to inject automation scripts
+ * Uses Tampermonkey's approach: inject at document_start BEFORE CSP is processed
  */
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-  // Only proceed if we're tracking this tab and page has loaded
-  if (!automatingTabs.has(tabId) || changeInfo.status !== 'complete') {
+  // Only proceed if we're tracking this tab and page is loading
+  if (!automatingTabs.has(tabId) || changeInfo.status !== 'loading') {
     return;
   }
 
@@ -369,33 +370,230 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   automatingTabs.delete(tabId); // Remove from tracking
 
   try {
-    console.log('Injecting automation script for:', automationData.name);
+    console.log('[LinkStart] Injecting automation at document_start for:', automationData.name);
 
-    // Inject content script file (works with CSP)
+    // Inject into MAIN world at document_start (before CSP)
     await chrome.scripting.executeScript({
       target: { tabId: tabId },
-      files: ['content.js']
+      world: 'MAIN',
+      injectImmediately: true,
+      func: function(userScript, siteName) {
+        // This runs in page context BEFORE CSP is applied
+        // We can use Function constructors freely here
+
+        // Helper functions (defined as strings so they work in page context)
+        const helpers = {
+          waitForElement: function(selector, timeout = 10000) {
+            return new Promise((resolve, reject) => {
+              const element = document.querySelector(selector);
+              if (element) {
+                resolve(element);
+                return;
+              }
+
+              const observer = new MutationObserver(() => {
+                const element = document.querySelector(selector);
+                if (element) {
+                  observer.disconnect();
+                  clearTimeout(timeoutId);
+                  resolve(element);
+                }
+              });
+
+              observer.observe(document.body || document.documentElement, {
+                childList: true,
+                subtree: true
+              });
+
+              const timeoutId = setTimeout(() => {
+                observer.disconnect();
+                reject(new Error('Timeout waiting for element: ' + selector));
+              }, timeout);
+            });
+          },
+
+          fillInput: async function(selector, value) {
+            const element = await this.waitForElement(selector);
+            element.focus();
+            element.value = value;
+            element.dispatchEvent(new Event('input', { bubbles: true }));
+            element.dispatchEvent(new Event('change', { bubbles: true }));
+            element.blur();
+          },
+
+          clickElement: async function(selector) {
+            const element = await this.waitForElement(selector);
+            element.click();
+          },
+
+          waitForNavigation: function(timeout = 5000) {
+            return new Promise((resolve) => {
+              if (document.readyState === 'complete') {
+                resolve();
+                return;
+              }
+
+              const timeoutId = setTimeout(() => {
+                window.removeEventListener('load', onLoad);
+                resolve();
+              }, timeout);
+
+              const onLoad = () => {
+                clearTimeout(timeoutId);
+                resolve();
+              };
+
+              window.addEventListener('load', onLoad);
+            });
+          },
+
+          sleep: function(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+          },
+
+          waitForElements: async function(selectors, timeout = 10000) {
+            const promises = selectors.map(selector => this.waitForElement(selector, timeout));
+            return Promise.all(promises);
+          },
+
+          elementExists: function(selector) {
+            return document.querySelector(selector) !== null;
+          },
+
+          getTextContent: async function(selector) {
+            const element = await this.waitForElement(selector);
+            return element.textContent.trim();
+          },
+
+          selectOption: async function(selector, value) {
+            const element = await this.waitForElement(selector);
+            if (!element || element.tagName !== 'SELECT') {
+              throw new Error('Select element not found: ' + selector);
+            }
+            element.value = value;
+            element.dispatchEvent(new Event('change', { bubbles: true }));
+          },
+
+          setChecked: async function(selector, checked = true) {
+            const element = await this.waitForElement(selector);
+            if (!element || (element.type !== 'checkbox' && element.type !== 'radio')) {
+              throw new Error('Checkbox/radio element not found: ' + selector);
+            }
+            if (element.checked !== checked) {
+              element.click();
+            }
+          },
+
+          scrollToElement: async function(selector) {
+            const element = await this.waitForElement(selector);
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          },
+
+          typeText: async function(selector, text, delay = 100) {
+            const element = await this.waitForElement(selector);
+            element.focus();
+            for (const char of text) {
+              element.value += char;
+              element.dispatchEvent(new Event('input', { bubbles: true }));
+              await this.sleep(delay);
+            }
+            element.dispatchEvent(new Event('change', { bubbles: true }));
+            element.blur();
+          },
+
+          log: function(...args) {
+            console.log('[LinkStart Script]', ...args);
+          },
+
+          waitForDOMReady: function() {
+            return new Promise((resolve) => {
+              if (document.readyState === 'complete' || document.readyState === 'interactive') {
+                resolve();
+                return;
+              }
+              document.addEventListener('DOMContentLoaded', () => resolve());
+            });
+          },
+
+          waitForPageLoad: function() {
+            return new Promise((resolve) => {
+              if (document.readyState === 'complete') {
+                resolve();
+                return;
+              }
+              window.addEventListener('load', () => resolve());
+            });
+          },
+
+          waitForNetworkIdle: async function(timeout = 2000) {
+            await this.waitForPageLoad();
+            await this.sleep(timeout);
+          }
+        };
+
+        // Execute automation after page loads
+        (async function() {
+          try {
+            console.log('[LinkStart] Waiting for page to be ready...');
+            await helpers.waitForPageLoad();
+
+            console.log('[LinkStart] Executing automation for:', siteName);
+
+            // Create async function from user script with helpers in scope
+            const {
+              waitForElement, fillInput, clickElement, waitForNavigation, sleep,
+              waitForElements, elementExists, getTextContent, selectOption,
+              setChecked, scrollToElement, typeText, log, waitForDOMReady,
+              waitForPageLoad, waitForNetworkIdle
+            } = helpers;
+
+            // Now we can use Function constructor because CSP hasn't been applied yet
+            const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
+            const automationFunc = new AsyncFunction(
+              'waitForElement', 'fillInput', 'clickElement', 'waitForNavigation', 'sleep',
+              'waitForElements', 'elementExists', 'getTextContent', 'selectOption',
+              'setChecked', 'scrollToElement', 'typeText', 'log', 'waitForDOMReady',
+              'waitForPageLoad', 'waitForNetworkIdle',
+              userScript
+            );
+
+            // Execute with timeout
+            const timeoutPromise = new Promise((_, reject) => {
+              setTimeout(() => reject(new Error('Automation timeout (30s)')), 30000);
+            });
+
+            await Promise.race([
+              automationFunc(
+                waitForElement, fillInput, clickElement, waitForNavigation, sleep,
+                waitForElements, elementExists, getTextContent, selectOption,
+                setChecked, scrollToElement, typeText, log, waitForDOMReady,
+                waitForPageLoad, waitForNetworkIdle
+              ),
+              timeoutPromise
+            ]);
+
+            console.log('[LinkStart] Automation completed for:', siteName);
+
+          } catch (error) {
+            console.error('[LinkStart] Automation error:', error);
+            console.error('[LinkStart] Site:', siteName);
+            console.error('[LinkStart] Error:', error.message);
+          }
+        })();
+      },
+      args: [automationData.script, automationData.name]
     });
 
-    // Wait a moment for content script to initialize
-    await new Promise(resolve => setTimeout(resolve, 100));
-
-    // Send automation script to content script
-    await chrome.tabs.sendMessage(tabId, {
-      action: 'executeAutomation',
-      script: automationData.script,
-      siteName: automationData.name
-    });
+    console.log('[LinkStart] Automation injected successfully');
 
   } catch (error) {
-    console.error('Error injecting automation script:', error);
+    console.error('[LinkStart] Injection error:', error);
 
-    // Show error notification
     chrome.notifications.create({
       type: 'basic',
       iconUrl: chrome.runtime.getURL('icons/icon-48.png'),
       title: 'Automation Error',
-      message: `Failed to run automation for ${automationData.name}: ${error.message}`
+      message: `Failed to inject automation for ${automationData.name}: ${error.message}`
     });
   }
 });
