@@ -271,7 +271,7 @@ If you find LinkStart useful, consider supporting its development:
 - [x] Autostart groups when Firefox launches
 - [x] URL management with test functionality
 - [x] Dual-listbox picker for group URLs
-- [ ] Generate proper PNG icons from SVG
+- [x] Generate proper PNG icons from SVG
 - [ ] Visual automation recorder (record clicks instead of writing scripts)
 - [ ] Keyboard shortcuts for launching groups
 - [ ] Password manager integration
