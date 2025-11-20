@@ -311,61 +311,128 @@ function createGroupCard(group) {
   const enabledSites = group.sites.filter(s => s.enabled !== false).length;
   const totalSites = group.sites.length;
 
-  card.innerHTML = `
-    <div class="group-card-header">
-      <div class="group-info">
-        <div class="group-title">${escapeHtml(group.name)}</div>
-        <div class="group-meta">${enabledSites} of ${totalSites} sites enabled</div>
-      </div>
-      <div class="group-actions">
-        <button class="test-btn test-group" title="Test group (launch all sites)">🚀 Test</button>
-        <button class="icon-btn edit-group" title="Edit group name">✏️ Edit</button>
-        <button class="icon-btn delete-group" title="Delete group">🗑️ Delete</button>
-      </div>
-    </div>
-    <div class="group-options">
-      <label class="checkbox-label autostart-label">
-        <input type="checkbox" class="autostart-checkbox" ${group.autostart ? 'checked' : ''}>
-        <span>🚀 Launch this group automatically when Firefox starts</span>
-      </label>
-    </div>
-    <div class="group-card-body">
-      <div class="sites-list">
-        ${group.sites.length > 0 ? group.sites.map(site => createSiteItem(group.id, site)).join('') : '<div class="empty-sites">No sites in this group yet.</div>'}
-      </div>
-      <button class="primary-btn add-site" data-group-id="${group.id}">+ Add Site</button>
-    </div>
-  `;
+  // Create header
+  const header = document.createElement('div');
+  header.className = 'group-card-header';
+
+  const info = document.createElement('div');
+  info.className = 'group-info';
+
+  const title = document.createElement('div');
+  title.className = 'group-title';
+  title.textContent = group.name;
+
+  const meta = document.createElement('div');
+  meta.className = 'group-meta';
+  meta.textContent = `${enabledSites} of ${totalSites} sites enabled`;
+
+  info.appendChild(title);
+  info.appendChild(meta);
+
+  const actions = document.createElement('div');
+  actions.className = 'group-actions';
+
+  const testBtn = document.createElement('button');
+  testBtn.className = 'test-btn test-group';
+  testBtn.title = 'Test group (launch all sites)';
+  testBtn.textContent = '🚀 Test';
+
+  const editBtn = document.createElement('button');
+  editBtn.className = 'icon-btn edit-group';
+  editBtn.title = 'Edit group name';
+  editBtn.textContent = '✏️ Edit';
+
+  const deleteBtn = document.createElement('button');
+  deleteBtn.className = 'icon-btn delete-group';
+  deleteBtn.title = 'Delete group';
+  deleteBtn.textContent = '🗑️ Delete';
+
+  actions.appendChild(testBtn);
+  actions.appendChild(editBtn);
+  actions.appendChild(deleteBtn);
+
+  header.appendChild(info);
+  header.appendChild(actions);
+
+  // Create options section
+  const options = document.createElement('div');
+  options.className = 'group-options';
+
+  const label = document.createElement('label');
+  label.className = 'checkbox-label autostart-label';
+
+  const checkbox = document.createElement('input');
+  checkbox.type = 'checkbox';
+  checkbox.className = 'autostart-checkbox';
+  checkbox.checked = group.autostart || false;
+
+  const labelText = document.createElement('span');
+  labelText.textContent = '🚀 Launch this group automatically when Firefox starts';
+
+  label.appendChild(checkbox);
+  label.appendChild(labelText);
+  options.appendChild(label);
+
+  // Create body
+  const body = document.createElement('div');
+  body.className = 'group-card-body';
+
+  const sitesList = document.createElement('div');
+  sitesList.className = 'sites-list';
+
+  if (group.sites.length > 0) {
+    group.sites.forEach(site => {
+      const siteElement = createSiteItemElement(group.id, site);
+      sitesList.appendChild(siteElement);
+    });
+  } else {
+    const emptySites = document.createElement('div');
+    emptySites.className = 'empty-sites';
+    emptySites.textContent = 'No sites in this group yet.';
+    sitesList.appendChild(emptySites);
+  }
+
+  const addSiteBtn = document.createElement('button');
+  addSiteBtn.className = 'primary-btn add-site';
+  addSiteBtn.dataset.groupId = group.id;
+  addSiteBtn.textContent = '+ Add Site';
+
+  body.appendChild(sitesList);
+  body.appendChild(addSiteBtn);
+
+  // Assemble card
+  card.appendChild(header);
+  card.appendChild(options);
+  card.appendChild(body);
 
   // Event listeners
-  const header = card.querySelector('.group-card-header');
   header.addEventListener('click', (e) => {
     if (!e.target.closest('.group-actions')) {
       card.classList.toggle('expanded');
     }
   });
 
-  card.querySelector('.test-group').addEventListener('click', (e) => {
+  testBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     testGroup(group.id);
   });
 
-  card.querySelector('.edit-group').addEventListener('click', (e) => {
+  editBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     editGroup(group.id);
   });
 
-  card.querySelector('.delete-group').addEventListener('click', (e) => {
+  deleteBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     deleteGroup(group.id);
   });
 
-  card.querySelector('.add-site').addEventListener('click', () => {
+  addSiteBtn.addEventListener('click', () => {
     openSiteModal(group.id);
   });
 
   // Autostart checkbox listener
-  card.querySelector('.autostart-checkbox').addEventListener('change', async (e) => {
+  checkbox.addEventListener('change', async (e) => {
     await toggleAutostart(group.id, e.target.checked);
   });
 
@@ -381,23 +448,52 @@ function createGroupCard(group) {
 }
 
 /**
- * Create a site item HTML
+ * Create a site item element
  */
-function createSiteItem(groupId, site) {
-  return `
-    <div class="site-item ${site.enabled === false ? 'disabled' : ''}" data-site-id="${site.id}">
-      <div class="site-info">
-        <div class="site-name">
-          ${escapeHtml(site.name)}
-          ${site.automationScript ? '<span class="site-badge has-script">Has Script</span>' : ''}
-        </div>
-        <div class="site-url">${escapeHtml(site.url)}</div>
-      </div>
-      <div class="site-actions">
-        <button class="icon-btn delete-site" title="Remove from group">🗑️</button>
-      </div>
-    </div>
-  `;
+function createSiteItemElement(groupId, site) {
+  const siteItem = document.createElement('div');
+  siteItem.className = 'site-item';
+  if (site.enabled === false) {
+    siteItem.classList.add('disabled');
+  }
+  siteItem.dataset.siteId = site.id;
+
+  const siteInfo = document.createElement('div');
+  siteInfo.className = 'site-info';
+
+  const siteName = document.createElement('div');
+  siteName.className = 'site-name';
+  siteName.textContent = site.name;
+
+  if (site.automationScript) {
+    const badge = document.createElement('span');
+    badge.className = 'site-badge has-script';
+    badge.textContent = 'Has Script';
+    siteName.appendChild(document.createTextNode(' '));
+    siteName.appendChild(badge);
+  }
+
+  const siteUrl = document.createElement('div');
+  siteUrl.className = 'site-url';
+  siteUrl.textContent = site.url;
+
+  siteInfo.appendChild(siteName);
+  siteInfo.appendChild(siteUrl);
+
+  const siteActions = document.createElement('div');
+  siteActions.className = 'site-actions';
+
+  const deleteBtn = document.createElement('button');
+  deleteBtn.className = 'icon-btn delete-site';
+  deleteBtn.title = 'Remove from group';
+  deleteBtn.textContent = '🗑️';
+
+  siteActions.appendChild(deleteBtn);
+
+  siteItem.appendChild(siteInfo);
+  siteItem.appendChild(siteActions);
+
+  return siteItem;
 }
 
 /**

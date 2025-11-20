@@ -16,7 +16,7 @@
     "productivity"
   ],
   "author": "",
-  "license": "MIT",
+  "license": "GPL-3.0-only",
   "devDependencies": {
     "web-ext": "^8.3.0"
   }
