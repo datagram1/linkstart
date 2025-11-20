@@ -1,17 +1,55 @@
 # LinkStart
 
-A powerful Firefox browser extension that allows you to launch groups of websites with automated login scripts. Perfect for work setups, research tasks, or any collection of sites you visit regularly.
-
 **Launch groups of websites with one click. Supports auto-login scripts and Firefox startup automation.**
 
-## Features
+LinkStart lets you turn Firefox startup into a fully-automated workflow. Create named groups of URLs, optionally attach a JavaScript automation script to each site, and open everything with a single click or when Firefox launches. LinkStart can log you in, navigate to dashboards, and run any repeatable "startup routine" you normally do by hand.
 
-- **Group Management**: Organize websites into named groups
-- **Single or Multi-Group Mode**: Choose to launch a default group instantly or select from multiple groups
-- **Automated Login**: Write JavaScript automation scripts to automatically log in and navigate to specific pages
-- **Import/Export**: Backup and restore your groups and settings
-- **Dark Mode Support**: Automatically adapts to your system theme
-- **Clean Interface**: Modern, intuitive UI for managing your sites
+## What You Can Do With LinkStart
+
+- **Open a full "workday" workspace**: email, project management, analytics, documentation – all at once.
+- **Automatically log into sites** and jump straight to the pages you actually use (e.g. Jira board, CRM dashboard, YouTube Studio).
+- **Run small scripts on startup**: dismiss pop-ups, switch to dark theme, open specific sections, fill in forms, etc.
+- **Save different groups for different contexts**: Work, Gaming, Streaming, Research, Study, Daily Admin, and more.
+
+## Key Features
+
+### Groups of URLs
+Organise your favourite sites into named groups. Each group can contain as many URLs as you need.
+
+### Startup Automation
+Choose one (or more) groups to launch automatically when Firefox starts, or trigger them manually from the toolbar button.
+
+### Per-site JavaScript Automation
+Attach an automation script to each URL. Scripts run after the page loads so you can:
+- Fill in username/password fields
+- Click login/continue buttons
+- Navigate to specific sections or dashboards
+- Perform any repeatable DOM interactions
+
+### Import / Export
+Backup and restore all your groups, URLs and scripts as JSON.
+
+### Dark-mode Friendly UI
+The options page and popup respect your system theme and keep the interface clean and readable.
+
+### Modern, Script-friendly Design
+A focused interface for editing URLs and automation scripts with helpful examples and debugging tools.
+
+## How It Works
+
+1. **Create a group** – e.g. "Morning Work Start", "Streaming Setup", "Study Session"
+2. **Add URLs** – add each site you want to open
+3. **(Optional) Add a script** – write a small JavaScript snippet that runs in the context of that tab after it loads (to log in, click elements, etc.)
+4. **Launch**:
+   - Click the LinkStart toolbar icon and choose a group, or
+   - Configure LinkStart to auto-launch one or more groups when Firefox starts
+
+## Security & Privacy
+
+- All configuration (groups, URLs, scripts) is stored locally in the browser using the standard WebExtensions storage APIs
+- LinkStart does not send your data to any external server
+- Automation scripts run only on the pages you configure them for
+- Users should avoid hard-coding plain-text passwords into scripts where possible and instead rely on Firefox's built-in password manager when they can
 
 ## Installation
 
@@ -245,14 +283,6 @@ Contributions are welcome! Please:
 ## License
 
 MIT License - see LICENSE file for details
-
-## Privacy
-
-This extension:
-- Stores all data locally in Firefox's storage API
-- Does not collect or transmit any data
-- Does not include any analytics or tracking
-- Only accesses websites you explicitly configure
 
 ## Support
 
