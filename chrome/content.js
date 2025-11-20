@@ -224,7 +224,7 @@
     console.log('[LinkStart] Executing automation script for:', siteName);
 
     try {
-      // Create async function with helper functions in scope
+      // Content scripts can use AsyncFunction without CSP restrictions
       const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
 
       // Build the function with helpers destructured
@@ -331,8 +331,10 @@
    */
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === 'executeAutomation') {
+      // Execute automation (it will notify background script internally)
       executeAutomation(message.script, message.siteName);
-      return true; // Keep message channel open for async response
+      // Don't return true - we're not using sendResponse
+      // The executeAutomation function handles its own messaging
     }
   });
 

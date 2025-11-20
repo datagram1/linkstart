@@ -371,7 +371,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   try {
     console.log('Injecting automation script for:', automationData.name);
 
-    // Inject content script using MV3 API
+    // Inject content script file (works with CSP)
     await chrome.scripting.executeScript({
       target: { tabId: tabId },
       files: ['content.js']
@@ -399,6 +399,637 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     });
   }
 });
+
+/**
+ * Inject helper functions into window object (MAIN world)
+ * These run in page context and can interact with DOM
+ */
+function injectHelpersToWindow() {
+  if (window.__linkstart_helpers) return; // Already injected
+
+  const helpers = {
+        waitForElement: function(selector, timeout = 10000) {
+          return new Promise((resolve, reject) => {
+            const element = document.querySelector(selector);
+            if (element) {
+              resolve(element);
+              return;
+            }
+
+            const observer = new MutationObserver(() => {
+              const element = document.querySelector(selector);
+              if (element) {
+                observer.disconnect();
+                clearTimeout(timeoutId);
+                resolve(element);
+              }
+            });
+
+            observer.observe(document.body, {
+              childList: true,
+              subtree: true
+            });
+
+            const timeoutId = setTimeout(() => {
+              observer.disconnect();
+              reject(new Error('Timeout waiting for element: ' + selector));
+            }, timeout);
+          });
+        },
+
+        fillInput: async function(selector, value) {
+          const element = await helpers.waitForElement(selector);
+          if (!element) {
+            throw new Error('Element not found: ' + selector);
+          }
+
+          element.focus();
+          element.value = value;
+          element.dispatchEvent(new Event('input', { bubbles: true }));
+          element.dispatchEvent(new Event('change', { bubbles: true }));
+          element.blur();
+        },
+
+        clickElement: async function(selector) {
+          const element = await helpers.waitForElement(selector);
+          if (!element) {
+            throw new Error('Element not found: ' + selector);
+          }
+
+          element.click();
+        },
+
+        waitForNavigation: function(timeout = 5000) {
+          return new Promise((resolve) => {
+            if (document.readyState === 'complete') {
+              resolve();
+              return;
+            }
+
+            const timeoutId = setTimeout(() => {
+              window.removeEventListener('load', onLoad);
+              resolve();
+            }, timeout);
+
+            const onLoad = () => {
+              clearTimeout(timeoutId);
+              resolve();
+            };
+
+            window.addEventListener('load', onLoad);
+          });
+        },
+
+        sleep: function(ms) {
+          return new Promise(resolve => setTimeout(resolve, ms));
+        },
+
+        waitForElements: async function(selectors, timeout = 10000) {
+          const promises = selectors.map(selector => helpers.waitForElement(selector, timeout));
+          return Promise.all(promises);
+        },
+
+        elementExists: function(selector) {
+          return document.querySelector(selector) !== null;
+        },
+
+        getTextContent: async function(selector) {
+          const element = await helpers.waitForElement(selector);
+          return element.textContent.trim();
+        },
+
+        selectOption: async function(selector, value) {
+          const element = await helpers.waitForElement(selector);
+          if (!element || element.tagName !== 'SELECT') {
+            throw new Error('Select element not found: ' + selector);
+          }
+
+          element.value = value;
+          element.dispatchEvent(new Event('change', { bubbles: true }));
+        },
+
+        setChecked: async function(selector, checked = true) {
+          const element = await helpers.waitForElement(selector);
+          if (!element || (element.type !== 'checkbox' && element.type !== 'radio')) {
+            throw new Error('Checkbox/radio element not found: ' + selector);
+          }
+
+          if (element.checked !== checked) {
+            element.click();
+          }
+        },
+
+        scrollToElement: async function(selector) {
+          const element = await helpers.waitForElement(selector);
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        },
+
+        typeText: async function(selector, text, delay = 100) {
+          const element = await helpers.waitForElement(selector);
+          element.focus();
+
+          for (const char of text) {
+            element.value += char;
+            element.dispatchEvent(new Event('input', { bubbles: true }));
+            await helpers.sleep(delay);
+          }
+
+          element.dispatchEvent(new Event('change', { bubbles: true }));
+          element.blur();
+        },
+
+        log: function(...args) {
+          console.log('[LinkStart Script]', ...args);
+        },
+
+        waitForDOMReady: function() {
+          return new Promise((resolve) => {
+            if (document.readyState === 'complete' || document.readyState === 'interactive') {
+              resolve();
+              return;
+            }
+            document.addEventListener('DOMContentLoaded', () => resolve());
+          });
+        },
+
+        waitForPageLoad: function() {
+          return new Promise((resolve) => {
+            if (document.readyState === 'complete') {
+              resolve();
+              return;
+            }
+            window.addEventListener('load', () => resolve());
+          });
+        },
+
+        waitForNetworkIdle: async function(timeout = 2000) {
+          await helpers.waitForPageLoad();
+          await helpers.sleep(timeout);
+        }
+      };
+
+  // Assign to window
+  window.__linkstart_helpers = helpers;
+  console.log('[LinkStart] Helpers injected to window');
+}
+
+/**
+ * Execute automation in ISOLATED world (extension context)
+ * Can use AsyncFunction here without CSP restrictions
+ * Defines helpers directly in this context
+ */
+async function executeAutomationIsolated(userScript, siteName) {
+  console.log('[LinkStart] Executing automation script for:', siteName);
+
+  try {
+    // Define helper functions directly in ISOLATED world
+    // These can interact with DOM just fine from extension context
+    const helpers = {
+      waitForElement: function(selector, timeout = 10000) {
+        return new Promise((resolve, reject) => {
+          const element = document.querySelector(selector);
+          if (element) {
+            resolve(element);
+            return;
+          }
+
+          const observer = new MutationObserver(() => {
+            const element = document.querySelector(selector);
+            if (element) {
+              observer.disconnect();
+              clearTimeout(timeoutId);
+              resolve(element);
+            }
+          });
+
+          observer.observe(document.body, {
+            childList: true,
+            subtree: true
+          });
+
+          const timeoutId = setTimeout(() => {
+            observer.disconnect();
+            reject(new Error('Timeout waiting for element: ' + selector));
+          }, timeout);
+        });
+      },
+
+      fillInput: async function(selector, value) {
+        const element = await helpers.waitForElement(selector);
+        if (!element) {
+          throw new Error('Element not found: ' + selector);
+        }
+
+        element.focus();
+        element.value = value;
+        element.dispatchEvent(new Event('input', { bubbles: true }));
+        element.dispatchEvent(new Event('change', { bubbles: true }));
+        element.blur();
+      },
+
+      clickElement: async function(selector) {
+        const element = await helpers.waitForElement(selector);
+        if (!element) {
+          throw new Error('Element not found: ' + selector);
+        }
+
+        element.click();
+      },
+
+      waitForNavigation: function(timeout = 5000) {
+        return new Promise((resolve) => {
+          if (document.readyState === 'complete') {
+            resolve();
+            return;
+          }
+
+          const timeoutId = setTimeout(() => {
+            window.removeEventListener('load', onLoad);
+            resolve();
+          }, timeout);
+
+          const onLoad = () => {
+            clearTimeout(timeoutId);
+            resolve();
+          };
+
+          window.addEventListener('load', onLoad);
+        });
+      },
+
+      sleep: function(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+      },
+
+      waitForElements: async function(selectors, timeout = 10000) {
+        const promises = selectors.map(selector => helpers.waitForElement(selector, timeout));
+        return Promise.all(promises);
+      },
+
+      elementExists: function(selector) {
+        return document.querySelector(selector) !== null;
+      },
+
+      getTextContent: async function(selector) {
+        const element = await helpers.waitForElement(selector);
+        return element.textContent.trim();
+      },
+
+      selectOption: async function(selector, value) {
+        const element = await helpers.waitForElement(selector);
+        if (!element || element.tagName !== 'SELECT') {
+          throw new Error('Select element not found: ' + selector);
+        }
+
+        element.value = value;
+        element.dispatchEvent(new Event('change', { bubbles: true }));
+      },
+
+      setChecked: async function(selector, checked = true) {
+        const element = await helpers.waitForElement(selector);
+        if (!element || (element.type !== 'checkbox' && element.type !== 'radio')) {
+          throw new Error('Checkbox/radio element not found: ' + selector);
+        }
+
+        if (element.checked !== checked) {
+          element.click();
+        }
+      },
+
+      scrollToElement: async function(selector) {
+        const element = await helpers.waitForElement(selector);
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      },
+
+      typeText: async function(selector, text, delay = 100) {
+        const element = await helpers.waitForElement(selector);
+        element.focus();
+
+        for (const char of text) {
+          element.value += char;
+          element.dispatchEvent(new Event('input', { bubbles: true }));
+          await helpers.sleep(delay);
+        }
+
+        element.dispatchEvent(new Event('change', { bubbles: true }));
+        element.blur();
+      },
+
+      log: function(...args) {
+        console.log('[LinkStart Script]', ...args);
+      },
+
+      waitForDOMReady: function() {
+        return new Promise((resolve) => {
+          if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            resolve();
+            return;
+          }
+          document.addEventListener('DOMContentLoaded', () => resolve());
+        });
+      },
+
+      waitForPageLoad: function() {
+        return new Promise((resolve) => {
+          if (document.readyState === 'complete') {
+            resolve();
+            return;
+          }
+          window.addEventListener('load', () => resolve());
+        });
+      },
+
+      waitForNetworkIdle: async function(timeout = 2000) {
+        await helpers.waitForPageLoad();
+        await helpers.sleep(timeout);
+      }
+    };
+
+    // Extract helpers to scope
+    const {
+      waitForElement,
+      fillInput,
+      clickElement,
+      waitForNavigation,
+      sleep,
+      waitForElements,
+      elementExists,
+      getTextContent,
+      selectOption,
+      setChecked,
+      scrollToElement,
+      typeText,
+      log,
+      waitForDOMReady,
+      waitForPageLoad,
+      waitForNetworkIdle
+    } = helpers;
+
+    // Create async function from user script
+    // This works in ISOLATED world (extension context) without CSP issues
+    const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
+    const automationFunc = new AsyncFunction(
+      'waitForElement',
+      'fillInput',
+      'clickElement',
+      'waitForNavigation',
+      'sleep',
+      'waitForElements',
+      'elementExists',
+      'getTextContent',
+      'selectOption',
+      'setChecked',
+      'scrollToElement',
+      'typeText',
+      'log',
+      'waitForDOMReady',
+      'waitForPageLoad',
+      'waitForNetworkIdle',
+      userScript
+    );
+
+    // Execute with timeout
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Automation script timeout (30 seconds)')), 30000);
+    });
+
+    await Promise.race([
+      automationFunc(
+        waitForElement,
+        fillInput,
+        clickElement,
+        waitForNavigation,
+        sleep,
+        waitForElements,
+        elementExists,
+        getTextContent,
+        selectOption,
+        setChecked,
+        scrollToElement,
+        typeText,
+        log,
+        waitForDOMReady,
+        waitForPageLoad,
+        waitForNetworkIdle
+      ),
+      timeoutPromise
+    ]);
+
+    console.log('[LinkStart] Automation completed successfully for', siteName);
+
+  } catch (error) {
+    console.error('[LinkStart] Automation error for', siteName, ':', error);
+    alert(`LinkStart automation failed for ${siteName}: ${error.message}`);
+  }
+}
+
+/**
+ * Legacy function kept for reference - not used anymore
+ */
+async function executeAutomationInPage_UNUSED(userScript, siteName) {
+  console.log('[LinkStart] Executing automation script for:', siteName);
+
+  try {
+    // Define helper functions
+    const helpers = {
+      waitForElement: function(selector, timeout = 10000) {
+        return new Promise((resolve, reject) => {
+          const element = document.querySelector(selector);
+          if (element) {
+            resolve(element);
+            return;
+          }
+
+          const observer = new MutationObserver(() => {
+            const element = document.querySelector(selector);
+            if (element) {
+              observer.disconnect();
+              clearTimeout(timeoutId);
+              resolve(element);
+            }
+          });
+
+          observer.observe(document.body, {
+            childList: true,
+            subtree: true
+          });
+
+          const timeoutId = setTimeout(() => {
+            observer.disconnect();
+            reject(new Error(`Timeout waiting for element: ${selector}`));
+          }, timeout);
+        });
+      },
+
+      fillInput: async function(selector, value) {
+        const element = await helpers.waitForElement(selector);
+        if (!element) {
+          throw new Error(`Element not found: ${selector}`);
+        }
+
+        element.focus();
+        element.value = value;
+        element.dispatchEvent(new Event('input', { bubbles: true }));
+        element.dispatchEvent(new Event('change', { bubbles: true }));
+        element.blur();
+      },
+
+      clickElement: async function(selector) {
+        const element = await helpers.waitForElement(selector);
+        if (!element) {
+          throw new Error(`Element not found: ${selector}`);
+        }
+
+        element.click();
+      },
+
+      waitForNavigation: function(timeout = 5000) {
+        return new Promise((resolve) => {
+          if (document.readyState === 'complete') {
+            resolve();
+            return;
+          }
+
+          const timeoutId = setTimeout(() => {
+            window.removeEventListener('load', onLoad);
+            resolve();
+          }, timeout);
+
+          const onLoad = () => {
+            clearTimeout(timeoutId);
+            resolve();
+          };
+
+          window.addEventListener('load', onLoad);
+        });
+      },
+
+      sleep: function(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+      },
+
+      waitForElements: async function(selectors, timeout = 10000) {
+        const promises = selectors.map(selector => helpers.waitForElement(selector, timeout));
+        return Promise.all(promises);
+      },
+
+      elementExists: function(selector) {
+        return document.querySelector(selector) !== null;
+      },
+
+      getTextContent: async function(selector) {
+        const element = await helpers.waitForElement(selector);
+        return element.textContent.trim();
+      },
+
+      selectOption: async function(selector, value) {
+        const element = await helpers.waitForElement(selector);
+        if (!element || element.tagName !== 'SELECT') {
+          throw new Error(`Select element not found: ${selector}`);
+        }
+
+        element.value = value;
+        element.dispatchEvent(new Event('change', { bubbles: true }));
+      },
+
+      setChecked: async function(selector, checked = true) {
+        const element = await helpers.waitForElement(selector);
+        if (!element || (element.type !== 'checkbox' && element.type !== 'radio')) {
+          throw new Error(`Checkbox/radio element not found: ${selector}`);
+        }
+
+        if (element.checked !== checked) {
+          element.click();
+        }
+      },
+
+      scrollToElement: async function(selector) {
+        const element = await helpers.waitForElement(selector);
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      },
+
+      typeText: async function(selector, text, delay = 100) {
+        const element = await helpers.waitForElement(selector);
+        element.focus();
+
+        for (const char of text) {
+          element.value += char;
+          element.dispatchEvent(new Event('input', { bubbles: true }));
+          await helpers.sleep(delay);
+        }
+
+        element.dispatchEvent(new Event('change', { bubbles: true }));
+        element.blur();
+      },
+
+      log: function(...args) {
+        console.log('[LinkStart Script]', ...args);
+      },
+
+      waitForDOMReady: function() {
+        return new Promise((resolve) => {
+          if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            resolve();
+            return;
+          }
+          document.addEventListener('DOMContentLoaded', () => resolve());
+        });
+      },
+
+      waitForPageLoad: function() {
+        return new Promise((resolve) => {
+          if (document.readyState === 'complete') {
+            resolve();
+            return;
+          }
+          window.addEventListener('load', () => resolve());
+        });
+      },
+
+      waitForNetworkIdle: async function(timeout = 2000) {
+        await helpers.waitForPageLoad();
+        await helpers.sleep(timeout);
+      }
+    };
+
+    // Extract helpers to scope
+    const {
+      waitForElement,
+      fillInput,
+      clickElement,
+      waitForNavigation,
+      sleep,
+      waitForElements,
+      elementExists,
+      getTextContent,
+      selectOption,
+      setChecked,
+      scrollToElement,
+      typeText,
+      log,
+      waitForDOMReady,
+      waitForPageLoad,
+      waitForNetworkIdle
+    } = helpers;
+
+    // Execute user script with timeout
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Automation script timeout (30 seconds)')), 30000);
+    });
+
+    const scriptPromise = (async () => {
+      eval(userScript);
+    })();
+
+    await Promise.race([scriptPromise, timeoutPromise]);
+
+    console.log('[LinkStart] Automation completed successfully for', siteName);
+
+  } catch (error) {
+    console.error('[LinkStart] Automation error for', siteName, ':', error);
+    alert(`LinkStart automation failed for ${siteName}: ${error.message}`);
+  }
+}
 
 /**
  * Handle messages from popup and settings pages
