@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "web-ext run --source-dir=./firefox --start-url about:debugging#/runtime/this-firefox",
     "build": "web-ext build --source-dir=./firefox --artifacts-dir=./dist",
+    "build:chrome": "cd chrome && zip -r ../dist/linkstart-chrome.zip * -x '*.DS_Store'",
     "lint": "web-ext lint --source-dir=./firefox",
     "sign": "web-ext sign --source-dir=./firefox"
   },

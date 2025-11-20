@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LinkStart - Settings</title>
+  <link rel="stylesheet" href="settings.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1>
+        <img src="icons/icon.svg" alt="LinkStart" class="header-logo">
+        LinkStart Settings
+      </h1>
+      <div class="header-actions">
+        <button id="exportBtn" class="secondary-btn">Export</button>
+        <button id="importBtn" class="secondary-btn">Import</button>
+        <input type="file" id="importFile" accept=".json" style="display: none;">
+      </div>
+    </header>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="urls">URLs</button>
+      <button class="tab-btn" data-tab="groups">Groups</button>
+      <button class="tab-btn" data-tab="scripts">Scripts</button>
+      <button class="tab-btn" data-tab="settings">Settings</button>
+    </div>
+
+    <main class="main-content">
+      <!-- URLs Tab -->
+      <div id="urlsTab" class="tab-content active">
+        <div class="section-header">
+          <h2>Manage URLs</h2>
+          <button id="addUrlBtn" class="primary-btn">+ Add URL</button>
+        </div>
+
+        <div id="urlsList" class="urls-list">
+          <div class="urls-watermark">Click URL to Edit Script...</div>
+          <!-- URLs will be rendered here -->
+        </div>
+
+        <div id="emptyUrlsState" class="empty-state" style="display: none;">
+          <p>No URLs yet. Add your first URL to get started!</p>
+        </div>
+      </div>
+
+      <!-- Groups Tab -->
+      <div id="groupsTab" class="tab-content">
+        <div class="section-header">
+          <h2>Manage Groups</h2>
+          <button id="addGroupBtn" class="primary-btn">+ Add Group</button>
+        </div>
+
+        <div id="groupsList" class="groups-list">
+          <!-- Groups will be rendered here -->
+        </div>
+
+        <div id="emptyGroupsState" class="empty-state" style="display: none;">
+          <p>No groups yet. Create your first group to get started!</p>
+        </div>
+      </div>
+
+      <!-- Scripts Tab -->
+      <div id="scriptsTab" class="tab-content">
+        <div class="section-header">
+          <h2>Script Library & Examples</h2>
+        </div>
+
+        <div class="settings-section">
+          <h3>📚 Example Scripts</h3>
+          <p class="about-text">
+            Pre-made automation scripts you can use as templates or apply directly to your URLs.
+          </p>
+
+          <div id="scriptLibrary" class="script-library">
+            <!-- Script examples will be rendered here -->
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>📖 Writing Automation Scripts</h3>
+          <p class="about-text">
+            Automation scripts are JavaScript code that runs after a page loads. They can automate login, navigation, and interactions.
+          </p>
+
+          <div class="help-examples">
+            <h4>Basic Example: Auto-login</h4>
+            <pre><code>// Wait for the login form
+await waitForElement('#username');
+
+// Fill in credentials
+await fillInput('#username', 'your-email@example.com');
+await fillInput('#password', 'your-password');
+
+// Click login button
+await clickElement('#login-button');
+
+// Wait for dashboard to load
+await waitForNavigation();</code></pre>
+
+            <h4>Example: Dismiss Cookie Banner</h4>
+            <pre><code>// Check if cookie banner exists
+if (elementExists('.cookie-banner')) {
+  // Click accept button
+  await clickElement('.accept-cookies');
+  log('Cookie banner dismissed');
+}</code></pre>
+
+            <h4>Example: Navigate to Specific Page</h4>
+            <pre><code>// Wait for page to fully load
+await waitForPageLoad();
+
+// Click a specific menu item
+await clickElement('a[href="/dashboard"]');
+
+// Wait for navigation
+await waitForNavigation();</code></pre>
+
+            <h4>Debugging Your Scripts</h4>
+            <pre><code>// Use log() to see what's happening
+log('Script started');
+log('Looking for login form...');
+
+// Check if element exists before clicking
+if (elementExists('#login-button')) {
+  log('Login button found!');
+  await clickElement('#login-button');
+} else {
+  log('Login button not found - already logged in?');
+}</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings Tab -->
+      <div id="settingsTab" class="tab-content">
+        <div class="section-header">
+          <h2>Extension Settings</h2>
+        </div>
+
+        <div class="settings-section">
+          <h3>Launch Mode</h3>
+          <div class="radio-group">
+            <label class="radio-label">
+              <input type="radio" name="mode" value="single">
+              <div class="radio-content">
+                <span>Single Group Mode</span>
+                <p class="help-text">Clicking the toolbar icon launches a default group immediately</p>
+              </div>
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="mode" value="multi">
+              <div class="radio-content">
+                <span>Multi Group Mode</span>
+                <p class="help-text">Clicking the toolbar icon shows a popup to select a group</p>
+              </div>
+            </label>
+          </div>
+
+          <div id="defaultGroupSelect" style="display: none; margin-top: 16px;">
+            <label for="defaultGroup" class="label">Default Group:</label>
+            <select id="defaultGroup" class="select-input">
+              <option value="">Select a group...</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>Autostart Delay</h3>
+          <p class="about-text">
+            Delay before launching autostart group when Chrome opens. Recommended if you use Chrome's password manager.
+          </p>
+          <div style="margin-top: 12px;">
+            <label for="autostartDelay" class="label">Delay (seconds):</label>
+            <select id="autostartDelay" class="select-input" style="max-width: 200px;">
+              <option value="0">No delay (0s)</option>
+              <option value="5">5 seconds</option>
+              <option value="10">10 seconds</option>
+              <option value="15">15 seconds</option>
+              <option value="30">30 seconds</option>
+              <option value="60">60 seconds</option>
+              <option value="90">90 seconds</option>
+              <option value="120">120 seconds</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>About</h3>
+          <p class="about-text">
+            <strong>LinkStart v1.0.0</strong><br>
+            Launch groups of websites with automated login scripts.<br>
+            Perfect for work setups, research tasks, or any collection of sites you visit regularly.
+          </p>
+        </div>
+
+        <div class="settings-section">
+          <h3>Support the Developer</h3>
+          <p class="about-text">
+            Enjoying LinkStart? Consider supporting its development!
+          </p>
+          <a href="https://buymeacoffee.com/knws" target="_blank" rel="noopener noreferrer" class="coffee-link">
+            <img src="https://cdn.buymeacoffee.com/uploads/profile_pictures/2025/03/MfaUpCI1Ev9jDJ3q.png@300w_0e.png" alt="Buy Me a Coffee" class="coffee-logo">
+            <span>Buy me a coffee ☕</span>
+          </a>
+        </div>
+
+        <div class="settings-actions">
+          <button id="saveSettingsBtn" class="primary-btn">Save Settings</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Group Modal -->
+  <div id="groupModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="groupModalTitle">Add Group</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <label for="groupName" class="label">Group Name:</label>
+        <input type="text" id="groupName" class="input" placeholder="e.g., Work Sites, Social Media, Dev Tools">
+      </div>
+      <div class="modal-footer">
+        <button id="cancelGroupBtn" class="secondary-btn">Cancel</button>
+        <button id="saveGroupBtn" class="primary-btn">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Site Modal -->
+  <div id="siteModal" class="modal">
+    <div class="modal-content modal-large">
+      <div class="modal-header">
+        <h3 id="siteModalTitle">Add Sites to Group</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <label class="label">Select URLs from your list:</label>
+
+        <div class="dual-listbox">
+          <div class="listbox-container">
+            <div class="listbox-header">Available URLs</div>
+            <select id="availableUrls" class="listbox" multiple size="10">
+              <!-- Available URLs will be populated here -->
+            </select>
+          </div>
+
+          <div class="listbox-controls">
+            <button type="button" id="addUrlToGroup" class="arrow-btn" title="Add selected URLs">➜</button>
+            <button type="button" id="removeUrlFromGroup" class="arrow-btn" title="Remove selected URLs">⬅</button>
+          </div>
+
+          <div class="listbox-container">
+            <div class="listbox-header">Selected URLs</div>
+            <select id="selectedUrls" class="listbox" multiple size="10">
+              <!-- Selected URLs will be populated here -->
+            </select>
+          </div>
+        </div>
+
+        <div class="help-text" style="margin-top: 12px;">
+          💡 Tip: Select URLs from the left list and click ➜ to add them to this group
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="cancelSiteBtn" class="secondary-btn">Cancel</button>
+        <button id="saveSiteBtn" class="primary-btn">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Script Editor Modal -->
+  <div id="scriptModal" class="modal">
+    <div class="modal-content modal-large">
+      <div class="modal-header">
+        <h3 id="scriptModalTitle">Edit Automation Script</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="site-info-display">
+          <strong id="scriptSiteName"></strong><br>
+          <span id="scriptSiteUrl" style="color: #666; font-size: 13px;"></span>
+        </div>
+
+        <label for="automationScript" class="label" style="margin-top: 16px;">
+          Automation Script (JavaScript):
+          <span class="help-icon" title="Optional script to automate login or navigation">?</span>
+        </label>
+        <textarea id="automationScript" class="textarea" rows="12" placeholder="// Example:
+// await waitForElement('#username');
+// fillInput('#username', 'myuser');
+// fillInput('#password', 'mypass');
+// clickElement('#login-btn');"></textarea>
+
+        <div class="checkbox-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="scriptSiteEnabled" checked>
+            <span>Enable this site</span>
+          </label>
+        </div>
+
+        <details class="help-section">
+          <summary>Available Helper Functions</summary>
+          <div class="help-content">
+            <strong>Element Interaction:</strong><br>
+            <code>waitForElement(selector, timeout)</code> - Wait for element to appear<br>
+            <code>clickElement(selector)</code> - Click an element<br>
+            <code>fillInput(selector, value)</code> - Fill an input field<br>
+            <code>typeText(selector, text, delay)</code> - Type text with delay between characters<br>
+            <code>selectOption(selector, value)</code> - Select dropdown option<br>
+            <code>setChecked(selector, checked)</code> - Check/uncheck checkbox<br>
+            <code>scrollToElement(selector)</code> - Scroll to element<br>
+            <code>elementExists(selector)</code> - Check if element exists (returns boolean)<br>
+            <code>getTextContent(selector)</code> - Get text content of element<br>
+            <code>waitForElements([selectors], timeout)</code> - Wait for multiple elements<br>
+            <br>
+            <strong>Page Loading:</strong><br>
+            <code>waitForDOMReady()</code> - Wait for DOM to be ready<br>
+            <code>waitForPageLoad()</code> - Wait for page to fully load (DOM + resources)<br>
+            <code>waitForNetworkIdle(timeout)</code> - Wait for network activity to settle<br>
+            <code>waitForNavigation(timeout)</code> - Wait for navigation to complete<br>
+            <code>sleep(ms)</code> - Wait for specified milliseconds<br>
+            <br>
+            <strong>Debugging:</strong><br>
+            <code>log(...args)</code> - Debug logging (prefixed with [LinkStart Script])<br>
+            <code>console.log(...args)</code> - Standard console logging<br>
+            <code>console.error(...args)</code> - Log errors (red in console)<br>
+            <code>console.warn(...args)</code> - Log warnings (yellow in console)<br>
+          </div>
+        </details>
+      </div>
+      <div class="modal-footer">
+        <button id="cancelScriptBtn" class="secondary-btn">Cancel</button>
+        <button id="saveScriptBtn" class="primary-btn">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- URL Modal -->
+  <div id="urlModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="urlModalTitle">Add URL</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <label for="urlName" class="label">Name:</label>
+        <input type="text" id="urlName" class="input" placeholder="e.g., GitHub, Gmail, Dashboard">
+
+        <label for="urlAddress" class="label">URL:</label>
+        <input type="url" id="urlAddress" class="input" placeholder="https://example.com">
+      </div>
+      <div class="modal-footer">
+        <button id="cancelUrlBtn" class="secondary-btn">Cancel</button>
+        <button id="saveUrlBtn" class="primary-btn">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="settings.js"></script>
+</body>
+</html>
