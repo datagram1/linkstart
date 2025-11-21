@@ -153,7 +153,7 @@ async function init() {
     renderScriptLibrary();
     setupEventListeners();
   } catch (error) {
-    console.error('Error initializing settings:', error);
+    debug.error('Error initializing settings:', error);
     alert('Failed to load settings: ' + error.message);
   }
 }
@@ -163,9 +163,9 @@ async function init() {
  */
 async function loadData() {
   const [groupsResponse, settingsResponse, urlsData] = await Promise.all([
-    chrome.runtime.sendMessage({ action: 'getGroups' }),
-    chrome.runtime.sendMessage({ action: 'getSettings' }),
-    chrome.storage.local.get('urls')
+    browser.runtime.sendMessage({ action: 'getGroups' }),
+    browser.runtime.sendMessage({ action: 'getSettings' }),
+    browser.storage.local.get('urls')
   ]);
 
   groups = groupsResponse.groups || [];
@@ -178,8 +178,8 @@ async function loadData() {
  */
 async function saveData() {
   await Promise.all([
-    chrome.runtime.sendMessage({ action: 'saveGroups', groups }),
-    chrome.runtime.sendMessage({ action: 'saveSettings', settings })
+    browser.runtime.sendMessage({ action: 'saveGroups', groups }),
+    browser.runtime.sendMessage({ action: 'saveSettings', settings })
   ]);
 }
 
@@ -367,7 +367,7 @@ function createGroupCard(group) {
   checkbox.checked = group.autostart || false;
 
   const labelText = document.createElement('span');
-  labelText.textContent = '🚀 Launch this group automatically when Chrome starts';
+  labelText.textContent = '🚀 Launch this group automatically when Firefox starts';
 
   label.appendChild(checkbox);
   label.appendChild(labelText);
@@ -540,14 +540,14 @@ async function saveGroup() {
   try {
     if (currentEditingGroup) {
       // Edit existing group
-      await chrome.runtime.sendMessage({
+      await browser.runtime.sendMessage({
         action: 'updateGroup',
         groupId: currentEditingGroup,
         updates: { name }
       });
     } else {
       // Add new group
-      await chrome.runtime.sendMessage({
+      await browser.runtime.sendMessage({
         action: 'addGroup',
         name
       });
@@ -558,7 +558,7 @@ async function saveGroup() {
     updateDefaultGroupSelect();
     closeGroupModal();
   } catch (error) {
-    console.error('Error saving group:', error);
+    debug.error('Error saving group:', error);
     alert('Failed to save group: ' + error.message);
   }
 }
@@ -575,12 +575,12 @@ function editGroup(groupId) {
  */
 async function testGroup(groupId) {
   try {
-    await chrome.runtime.sendMessage({
+    await browser.runtime.sendMessage({
       action: 'launchGroup',
       groupId: groupId
     });
   } catch (error) {
-    console.error('Error testing group:', error);
+    debug.error('Error testing group:', error);
     alert('Failed to launch group: ' + error.message);
   }
 }
@@ -595,7 +595,7 @@ async function deleteGroup(groupId) {
   }
 
   try {
-    await chrome.runtime.sendMessage({
+    await browser.runtime.sendMessage({
       action: 'deleteGroup',
       groupId
     });
@@ -604,7 +604,7 @@ async function deleteGroup(groupId) {
     renderGroups();
     updateDefaultGroupSelect();
   } catch (error) {
-    console.error('Error deleting group:', error);
+    debug.error('Error deleting group:', error);
     alert('Failed to delete group: ' + error.message);
   }
 }
@@ -626,7 +626,7 @@ async function toggleAutostart(groupId, enabled) {
     }
 
     // Save to background
-    await chrome.runtime.sendMessage({
+    await browser.runtime.sendMessage({
       action: 'saveGroups',
       groups: groups
     });
@@ -637,10 +637,10 @@ async function toggleAutostart(groupId, enabled) {
     const group = groups.find(g => g.id === groupId);
     if (enabled) {
       // Show confirmation
-      console.log(`Autostart enabled for "${group.name}"`);
+      debug.log(`Autostart enabled for "${group.name}"`);
     }
   } catch (error) {
-    console.error('Error toggling autostart:', error);
+    debug.error('Error toggling autostart:', error);
     alert('Failed to update autostart: ' + error.message);
   }
 }
@@ -767,7 +767,7 @@ async function saveSite() {
     });
 
     // Save to background
-    await chrome.runtime.sendMessage({
+    await browser.runtime.sendMessage({
       action: 'saveGroups',
       groups: groups
     });
@@ -776,7 +776,7 @@ async function saveSite() {
     renderGroups();
     closeSiteModal();
   } catch (error) {
-    console.error('Error saving sites:', error);
+    debug.error('Error saving sites:', error);
     alert('Failed to save sites: ' + error.message);
   }
 }
@@ -797,7 +797,7 @@ async function deleteSite(groupId, siteId) {
     group.sites = group.sites.filter(s => s.id !== siteId);
 
     // Save to background
-    await chrome.runtime.sendMessage({
+    await browser.runtime.sendMessage({
       action: 'saveGroups',
       groups: groups
     });
@@ -805,7 +805,7 @@ async function deleteSite(groupId, siteId) {
     await loadData();
     renderGroups();
   } catch (error) {
-    console.error('Error deleting site:', error);
+    debug.error('Error deleting site:', error);
     alert('Failed to delete site: ' + error.message);
   }
 }
@@ -945,7 +945,7 @@ function renderScriptLibrary() {
  */
 async function saveSettings() {
   try {
-    await chrome.runtime.sendMessage({
+    await browser.runtime.sendMessage({
       action: 'saveSettings',
       settings
     });
@@ -962,7 +962,7 @@ async function saveSettings() {
     }, 2000);
 
   } catch (error) {
-    console.error('Error saving settings:', error);
+    debug.error('Error saving settings:', error);
     alert('Failed to save settings: ' + error.message);
   }
 }
@@ -972,7 +972,7 @@ async function saveSettings() {
  */
 async function exportData() {
   try {
-    const response = await chrome.runtime.sendMessage({ action: 'exportData' });
+    const response = await browser.runtime.sendMessage({ action: 'exportData' });
     const data = response.data;
 
     const json = JSON.stringify(data, null, 2);
@@ -986,7 +986,7 @@ async function exportData() {
 
     URL.revokeObjectURL(url);
   } catch (error) {
-    console.error('Error exporting data:', error);
+    debug.error('Error exporting data:', error);
     alert('Failed to export data: ' + error.message);
   }
 }
@@ -1004,7 +1004,7 @@ async function importData(event) {
 
     const merge = confirm('Do you want to merge with existing data?\n\nOK = Merge (keep existing groups)\nCancel = Replace (delete existing groups)');
 
-    await chrome.runtime.sendMessage({
+    await browser.runtime.sendMessage({
       action: 'importData',
       data,
       merge
@@ -1017,7 +1017,7 @@ async function importData(event) {
 
     alert('Import successful!');
   } catch (error) {
-    console.error('Error importing data:', error);
+    debug.error('Error importing data:', error);
     alert('Failed to import data: ' + error.message);
   }
 
@@ -1135,7 +1135,7 @@ function renderUrls() {
  * Test URL by opening in new tab
  */
 function testUrl(url) {
-  chrome.tabs.create({ url: url, active: false });
+  browser.tabs.create({ url: url, active: false });
 }
 
 /**
@@ -1214,12 +1214,12 @@ async function saveUrl() {
     }
 
     // Save to storage
-    await chrome.storage.local.set({ urls });
+    await browser.storage.local.set({ urls });
 
     renderUrls();
     closeUrlModal();
   } catch (error) {
-    console.error('Error saving URL:', error);
+    debug.error('Error saving URL:', error);
     alert('Failed to save URL: ' + error.message);
   }
 }
@@ -1243,10 +1243,10 @@ async function deleteUrl(urlId) {
 
   try {
     urls = urls.filter(u => u.id !== urlId);
-    await chrome.storage.local.set({ urls });
+    await browser.storage.local.set({ urls });
     renderUrls();
   } catch (error) {
-    console.error('Error deleting URL:', error);
+    debug.error('Error deleting URL:', error);
     alert('Failed to delete URL: ' + error.message);
   }
 }
@@ -1301,7 +1301,7 @@ async function saveScript() {
       url.automationScript = script;
 
       // Save to storage
-      await chrome.storage.local.set({ urls });
+      await browser.storage.local.set({ urls });
 
       // Update all groups that use this URL to have the updated script
       groups.forEach(group => {
@@ -1312,7 +1312,7 @@ async function saveScript() {
         });
       });
 
-      await chrome.runtime.sendMessage({
+      await browser.runtime.sendMessage({
         action: 'saveGroups',
         groups: groups
       });
@@ -1330,7 +1330,7 @@ async function saveScript() {
       site.enabled = enabled;
 
       // Save to background
-      await chrome.runtime.sendMessage({
+      await browser.runtime.sendMessage({
         action: 'saveGroups',
         groups: groups
       });
@@ -1341,7 +1341,7 @@ async function saveScript() {
 
     closeScriptModal();
   } catch (error) {
-    console.error('Error saving script:', error);
+    debug.error('Error saving script:', error);
     alert('Failed to save script: ' + error.message);
   }
 }

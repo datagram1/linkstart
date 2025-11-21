@@ -13,8 +13,8 @@ async function init() {
   try {
     // Load groups and settings from background
     const [groupsResponse, settingsResponse] = await Promise.all([
-      chrome.runtime.sendMessage({ action: 'getGroups' }),
-      chrome.runtime.sendMessage({ action: 'getSettings' })
+      browser.runtime.sendMessage({ action: 'getGroups' }),
+      browser.runtime.sendMessage({ action: 'getSettings' })
     ]);
 
     groups = groupsResponse.groups || [];
@@ -22,7 +22,7 @@ async function init() {
 
     renderGroups();
   } catch (error) {
-    console.error('Error initializing popup:', error);
+    debug.error('Error initializing popup:', error);
   }
 }
 
@@ -123,7 +123,7 @@ async function launchGroup(groupId) {
     });
 
     // Send message to background script to launch group
-    await chrome.runtime.sendMessage({
+    await browser.runtime.sendMessage({
       action: 'launchGroup',
       groupId: groupId
     });
@@ -132,7 +132,7 @@ async function launchGroup(groupId) {
     window.close();
 
   } catch (error) {
-    console.error('Error launching group:', error);
+    debug.error('Error launching group:', error);
 
     // Re-enable buttons
     document.querySelectorAll('.launch-btn').forEach(btn => {
@@ -147,7 +147,7 @@ async function launchGroup(groupId) {
  * Open settings page
  */
 function openSettings() {
-  chrome.runtime.openOptionsPage();
+  browser.runtime.openOptionsPage();
   window.close();
 }
 

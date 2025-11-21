@@ -178,7 +178,7 @@
      * Log a message to console (for debugging)
      */
     log: function(...args) {
-      console.log('[LinkStart Script]', ...args);
+      debug.log('[LinkStart Script]', ...args);
     },
 
     /**
@@ -221,10 +221,10 @@
    * Execute automation script
    */
   async function executeAutomation(script, siteName) {
-    console.log('[LinkStart] Executing automation script for:', siteName);
+    debug.log('[LinkStart] Executing automation script for:', siteName);
 
     try {
-      // Content scripts can use AsyncFunction without CSP restrictions
+      // Create async function with helper functions in scope
       const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
 
       // Build the function with helpers destructured
@@ -295,30 +295,30 @@
         timeoutPromise
       ]);
 
-      console.log('[LinkStart] Automation completed successfully');
+      debug.log('[LinkStart] Automation completed successfully');
 
       // Notify background script of success
-      chrome.runtime.sendMessage({
+      browser.runtime.sendMessage({
         action: 'automationComplete',
         siteName: siteName
       });
 
     } catch (error) {
-      console.error('[LinkStart] Automation error for', siteName);
-      console.error('[LinkStart] Error details:', error);
-      console.error('[LinkStart] Stack trace:', error.stack);
+      debug.error('[LinkStart] Automation error for', siteName);
+      debug.error('[LinkStart] Error details:', error);
+      debug.error('[LinkStart] Stack trace:', error.stack);
 
       // Provide more helpful error messages
       let errorMessage = error.message;
 
       if (error.message.includes('Timeout waiting for element')) {
-        errorMessage = `Element not found on ${siteName}. This may be caused by:\n- Chrome password manager not unlocked\n- Page structure changed\n- Network delay\n\nOriginal error: ${error.message}`;
+        errorMessage = `Element not found on ${siteName}. This may be caused by:\n- Firefox Primary Password not unlocked\n- Page structure changed\n- Network delay\n\nOriginal error: ${error.message}`;
       } else if (error.message.includes('timeout')) {
-        errorMessage = `Script timeout for ${siteName}. Possible causes:\n- Chrome password manager locked\n- Page taking too long to load\n- Script waiting for non-existent element`;
+        errorMessage = `Script timeout for ${siteName}. Possible causes:\n- Firefox Primary Password locked\n- Page taking too long to load\n- Script waiting for non-existent element`;
       }
 
       // Notify background script of error
-      chrome.runtime.sendMessage({
+      browser.runtime.sendMessage({
         action: 'automationError',
         error: `Automation failed for ${siteName}: ${errorMessage}`,
         siteName: siteName
@@ -329,14 +329,12 @@
   /**
    * Listen for messages from background script
    */
-  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === 'executeAutomation') {
-      // Execute automation (it will notify background script internally)
       executeAutomation(message.script, message.siteName);
-      // Don't return true - we're not using sendResponse
-      // The executeAutomation function handles its own messaging
+      return true; // Keep message channel open for async response
     }
   });
 
-  console.log('[LinkStart] Content script loaded');
+  debug.log('[LinkStart] Content script loaded');
 })();
