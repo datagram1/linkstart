@@ -3,6 +3,16 @@
  * Handles initialization, tab launching, and message passing
  */
 
+// DEBUG MODE: Set to false for production to disable debug logging
+const DEBUG = true;
+
+// Debug logging helper
+function debugLog(...args) {
+  if (DEBUG) {
+    console.log(...args);
+  }
+}
+
 // Track tabs being automated
 const automatingTabs = new Map();
 
@@ -202,7 +212,7 @@ async function initializeDefaultData() {
  */
 chrome.runtime.onInstalled.addListener(async (details) => {
   if (details.reason === 'install') {
-    console.log('LinkStart installed');
+    debugLog('LinkStart installed');
     await initializeDefaultData();
 
     // Open settings page on first install
@@ -216,7 +226,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
  * Launch autostart group when Chrome starts
  */
 chrome.runtime.onStartup.addListener(async () => {
-  console.log('Chrome started - checking for autostart group');
+  debugLog('Chrome started - checking for autostart group');
 
   try {
     const [groups, settings] = await Promise.all([
@@ -227,7 +237,7 @@ chrome.runtime.onStartup.addListener(async () => {
 
     if (autostartGroup && autostartGroup.sites.length > 0) {
       const delay = (settings.autostartDelay || 10) * 1000; // Convert seconds to milliseconds
-      console.log(`Launching autostart group "${autostartGroup.name}" in ${delay/1000} seconds`);
+      debugLog(`Launching autostart group "${autostartGroup.name}" in ${delay/1000} seconds`);
 
       if (chrome.alarms) {
         // Use alarms API for more reliable timing in service worker
@@ -284,7 +294,7 @@ async function launchGroup(groupId) {
       return;
     }
 
-    console.log('Launching group:', group.name);
+    debugLog('Launching group:', group.name);
 
     // Filter enabled sites
     const sites = group.sites.filter(site => site.enabled !== false);
@@ -370,7 +380,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   automatingTabs.delete(tabId); // Remove from tracking
 
   try {
-    console.log('[LinkStart] Injecting automation at document_start for:', automationData.name);
+    debugLog('[LinkStart] Injecting automation at document_start for:', automationData.name);
 
     // Inject into MAIN world at document_start (before CSP)
     await chrome.scripting.executeScript({
@@ -584,7 +594,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
       args: [automationData.script, automationData.name]
     });
 
-    console.log('[LinkStart] Automation injected successfully');
+    debugLog('[LinkStart] Automation injected successfully');
 
   } catch (error) {
     console.error('[LinkStart] Injection error:', error);
@@ -768,7 +778,7 @@ function injectHelpersToWindow() {
 
   // Assign to window
   window.__linkstart_helpers = helpers;
-  console.log('[LinkStart] Helpers injected to window');
+  debugLog('[LinkStart] Helpers injected to window');
 }
 
 /**
@@ -777,7 +787,7 @@ function injectHelpersToWindow() {
  * Defines helpers directly in this context
  */
 async function executeAutomationIsolated(userScript, siteName) {
-  console.log('[LinkStart] Executing automation script for:', siteName);
+  debugLog('[LinkStart] Executing automation script for:', siteName);
 
   try {
     // Define helper functions directly in ISOLATED world
@@ -1013,7 +1023,7 @@ async function executeAutomationIsolated(userScript, siteName) {
       timeoutPromise
     ]);
 
-    console.log('[LinkStart] Automation completed successfully for', siteName);
+    debugLog('[LinkStart] Automation completed successfully for', siteName);
 
   } catch (error) {
     console.error('[LinkStart] Automation error for', siteName, ':', error);
@@ -1025,7 +1035,7 @@ async function executeAutomationIsolated(userScript, siteName) {
  * Legacy function kept for reference - not used anymore
  */
 async function executeAutomationInPage_UNUSED(userScript, siteName) {
-  console.log('[LinkStart] Executing automation script for:', siteName);
+  debugLog('[LinkStart] Executing automation script for:', siteName);
 
   try {
     // Define helper functions
@@ -1221,7 +1231,7 @@ async function executeAutomationInPage_UNUSED(userScript, siteName) {
 
     await Promise.race([scriptPromise, timeoutPromise]);
 
-    console.log('[LinkStart] Automation completed successfully for', siteName);
+    debugLog('[LinkStart] Automation completed successfully for', siteName);
 
   } catch (error) {
     console.error('[LinkStart] Automation error for', siteName, ':', error);
@@ -1233,7 +1243,7 @@ async function executeAutomationInPage_UNUSED(userScript, siteName) {
  * Handle messages from popup and settings pages
  */
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log('Background received message:', message);
+  debugLog('Background received message:', message);
 
   // Handle async operations
   (async () => {
@@ -1306,7 +1316,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
         case 'automationComplete':
           // Automation script completed successfully
-          console.log('Automation completed for tab:', sender.tab.id);
+          debugLog('Automation completed for tab:', sender.tab.id);
           sendResponse({ success: true });
           break;
 
@@ -1336,4 +1346,4 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return true;
 });
 
-console.log('LinkStart background service worker loaded');
+debugLog('LinkStart background service worker loaded');
