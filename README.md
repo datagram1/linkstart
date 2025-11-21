@@ -2,6 +2,8 @@
 
 **Launch groups of websites with one click. Supports auto-login scripts and Firefox startup automation.**
 
+[![Get LinkStart for Firefox](https://img.shields.io/badge/Firefox%20Add--ons-Install-orange?style=for-the-badge&logo=firefox)](https://addons.mozilla.org/en-GB/firefox/addon/linkstart/)
+
 LinkStart lets you turn Firefox startup into a fully-automated workflow. Create named groups of URLs, optionally attach a JavaScript automation script to each site, and open everything with a single click or when Firefox launches. LinkStart can log you in, navigate to dashboards, and run any repeatable "startup routine" you normally do by hand.
 
 ## What You Can Do With LinkStart
@@ -52,6 +54,12 @@ A focused interface for editing URLs and automation scripts with helpful example
 - Users should avoid hard-coding plain-text passwords into scripts where possible and instead rely on Firefox's built-in password manager when they can
 
 ## Installation
+
+### From Firefox Add-ons (Recommended)
+
+Install LinkStart directly from the official Firefox Add-ons store:
+
+**[→ Get LinkStart for Firefox](https://addons.mozilla.org/en-GB/firefox/addon/linkstart/)**
 
 ### From Source (Development)
 
