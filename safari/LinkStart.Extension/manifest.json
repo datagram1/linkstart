@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "LinkStart",
   "version": "1.0.0",
-  "description": "Launch groups of websites with one click. Supports auto-login scripts and Firefox startup automation.",
+  "description": "Launch groups of websites with one click. Supports auto-login scripts and Safari startup automation.",
   "icons": {
     "48": "icons/icon-48.png",
     "96": "icons/icon-96.png",
@@ -15,7 +15,8 @@
     "<all_urls>"
   ],
   "background": {
-    "scripts": ["config.js", "storage-wrapper.js", "background.js"]
+    "scripts": ["browser-polyfill.js", "config.js", "storage-wrapper.js", "background.js"],
+    "persistent": false
   },
   "browser_action": {
     "default_icon": {
@@ -28,14 +29,5 @@
   "options_ui": {
     "page": "settings.html",
     "open_in_tab": true
-  },
-  "browser_specific_settings": {
-    "gecko": {
-      "id": "linkstart@developer.knws.co.uk",
-      "strict_min_version": "78.0",
-      "data_collection_permissions": {
-        "required": ["none"]
-      }
-    }
   }
 }

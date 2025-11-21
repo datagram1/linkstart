@@ -133,14 +133,38 @@ Let's automate a simple task:
 - Check `about:debugging` in Firefox
 - Restart Firefox
 
+## Debug Mode
+
+LinkStart includes a debug toggle to control console logging:
+
+**Enable Debug Mode (Development):**
+1. Open `shared/config.js` (or `firefox/config.js`, `chrome/config.js`, `safari/LinkStart.Extension/config.js`)
+2. Set `DEBUG: true`
+3. Reload the extension
+4. View detailed logs in the browser console
+
+**Disable Debug Mode (Production):**
+1. Open the same `config.js` file
+2. Set `DEBUG: false`
+3. Rebuild the extension
+4. No debug logs will appear in console
+
+When `DEBUG: false`, only critical errors are logged. This keeps the console clean in production and improves performance.
+
 ## Development Commands
 
 ```bash
 # Run in development mode with auto-reload
 npm run dev
 
-# Build for production
+# Build for production (remember to set DEBUG: false first!)
 npm run build
+
+# Build Safari version
+npm run build:safari
+
+# Build Chrome version
+npm run build:chrome
 
 # Lint code
 npm run lint

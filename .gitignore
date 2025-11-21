@@ -41,3 +41,14 @@ credentials/
 tmp/
 temp/
 todo/
+
+# Xcode / Safari
+DerivedData/
+*.xcuserstate
+*.xcuserdatad
+xcuserdata/
+*.xcworkspace
+!*.xcworkspace/contents.xcworkspacedata
+project.xcworkspace/
+.swiftpm/
+.build/

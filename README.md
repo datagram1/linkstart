@@ -85,6 +85,34 @@ npm run build
 
 This creates a `.zip` file in the `dist/` directory that can be submitted to Mozilla Add-ons (AMO).
 
+### Safari Installation
+
+#### Prerequisites
+- macOS 11.0 or later
+- Xcode 12.0 or later
+- Safari 14.0 or later
+
+#### Building for Safari
+
+1. Install dependencies (if not already done):
+   ```bash
+   npm install
+   ```
+
+2. Open the Xcode project:
+   ```bash
+   open safari/LinkStart/LinkStart.xcodeproj
+   ```
+
+3. In Xcode, select the LinkStart scheme and press Run (⌘R)
+
+4. In Safari:
+   - Go to Safari > Preferences > Extensions
+   - Enable the LinkStart extension
+   - You should see the LinkStart icon in the Safari toolbar
+
+For detailed Safari-specific instructions, see [safari/README.md](safari/README.md).
+
 ## Usage
 
 ### First Time Setup
@@ -212,6 +240,19 @@ startup_extension/
 │   ├── storage-wrapper.js # Storage API wrapper
 │   ├── manifest.json     # Extension manifest
 │   └── icons/            # Extension icons
+├── safari/               # Safari extension files
+│   ├── LinkStart.Extension/  # Safari web extension
+│   │   ├── background.js     # Background script
+│   │   ├── content.js        # Content script
+│   │   ├── popup.html/js/css # Popup UI
+│   │   ├── settings.html/js/css # Settings page
+│   │   ├── storage-wrapper.js # Storage wrapper
+│   │   ├── browser-polyfill.js # WebExtension API polyfill
+│   │   ├── manifest.json     # Safari manifest
+│   │   ├── shared/           # Shared utilities
+│   │   └── icons/            # Extension icons
+│   ├── LinkStart/        # Xcode project (generated)
+│   └── README.md         # Safari-specific documentation
 ├── shared/               # Shared code
 │   ├── storage.js        # Storage utilities
 │   └── helpers.js        # Automation helper functions
@@ -219,6 +260,71 @@ startup_extension/
 ├── package.json          # npm configuration
 └── README.md            # This file
 ```
+
+## Debug Mode
+
+LinkStart includes a configurable debug mode to control console logging across all extension components.
+
+### Toggling Debug Mode
+
+Debug logging is controlled by the `DEBUG` flag in `config.js`:
+
+**Location:** `shared/config.js` (also copied to `firefox/`, `chrome/`, and `safari/LinkStart.Extension/`)
+
+**Enable Debug Mode (Development):**
+```javascript
+const CONFIG = {
+  DEBUG: true,  // Enable detailed console logging
+  VERSION: '1.0.0'
+};
+```
+
+**Disable Debug Mode (Production):**
+```javascript
+const CONFIG = {
+  DEBUG: false,  // Disable debug logging
+  VERSION: '1.0.0'
+};
+```
+
+### Debug Logging Functions
+
+The extension uses specialized debug functions instead of direct `console.*` calls:
+
+```javascript
+debug.log('Message');     // Only logs when DEBUG: true
+debug.error('Error');     // Only logs when DEBUG: true
+debug.warn('Warning');    // Only logs when DEBUG: true
+debug.info('Info');       // Only logs when DEBUG: true
+debug.critical('Error');  // Always logs, even in production
+```
+
+### Best Practices
+
+- **Development**: Keep `DEBUG: true` to see detailed logs
+- **Production**: Set `DEBUG: false` before building release versions
+- **Critical Errors**: Use `debug.critical()` for errors that should always be logged
+- **Performance**: Disabling debug mode reduces console overhead and keeps logs clean
+
+### Building for Production
+
+Before building a production release:
+
+1. Set `DEBUG: false` in all `config.js` files:
+   ```bash
+   # Edit these files and set DEBUG: false
+   vim shared/config.js
+   vim firefox/config.js
+   vim chrome/config.js
+   vim safari/LinkStart.Extension/config.js
+   ```
+
+2. Build the extension:
+   ```bash
+   npm run build          # Firefox
+   npm run build:chrome   # Chrome
+   npm run build:safari   # Safari
+   ```
 
 ## Development
 
@@ -243,12 +349,12 @@ npm run build
 
 ## Browser Compatibility
 
-Currently targets:
-- Firefox 78+
+Currently supported:
+- **Firefox 78+** (primary platform)
+- **Safari 14+** (macOS 11.0+)
 
 Future plans:
 - Chrome/Edge (Manifest V3)
-- Safari (via Safari Web Extension Converter)
 
 ## Troubleshooting
 
@@ -306,12 +412,12 @@ If you find LinkStart useful, consider supporting its development:
 - [x] URL management with test functionality
 - [x] Dual-listbox picker for group URLs
 - [x] Generate proper PNG icons from SVG
+- [x] Safari support
 - [ ] Visual automation recorder (record clicks instead of writing scripts)
 - [ ] Keyboard shortcuts for launching groups
 - [ ] Password manager integration
 - [ ] Template library for common sites
 - [ ] Chrome/Edge support
-- [ ] Safari support
 - [ ] Mobile support (Firefox for Android)
 
 ## Acknowledgments

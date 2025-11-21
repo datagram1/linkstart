@@ -7,6 +7,8 @@
     "dev": "web-ext run --source-dir=./firefox --start-url about:debugging#/runtime/this-firefox",
     "build": "web-ext build --source-dir=./firefox --artifacts-dir=./dist",
     "build:chrome": "cd chrome && zip -r ../dist/linkstart-chrome.zip * -x '*.DS_Store'",
+    "build:safari": "cd safari/LinkStart.Extension && zip -r ../../dist/linkstart-safari.zip * -x '*.DS_Store'",
+    "convert:safari": "xcrun safari-web-extension-converter safari/LinkStart.Extension --app-name LinkStart --bundle-identifier com.knws.linkstart --macos-only --swift",
     "lint": "web-ext lint --source-dir=./firefox",
     "sign": "web-ext sign --source-dir=./firefox"
   },
@@ -19,6 +21,7 @@
   "author": "",
   "license": "GPL-3.0-only",
   "devDependencies": {
-    "web-ext": "^8.3.0"
+    "web-ext": "^8.3.0",
+    "webextension-polyfill": "^0.12.0"
   }
 }
